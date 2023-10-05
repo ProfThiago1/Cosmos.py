@@ -1,0 +1,67 @@
+from scipy.integrate import odeint
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
+from scipy.interpolate import interp1d
+from math import exp
+from scipy.special import erf
+import glob
+
+G = 6.674184e-11  # Nm^2/kg^2                                                                                     
+pc = 3.0857e16  # m                                                                                               
+kpc = 1e3 * pc
+Mpc = 1e3 * kpc
+Msun = 1.98847e30  # kg                                                                                           
+c_vel = 3 * 10 ** 8  # m/s
+year = 365*24*60*60 # in seconds
+
+def Ho(h):
+         return 100*h*1000/Mpc
+
+#print("{:e}".format(1/Ho(0.7)/year))
+
+
+# ----------- Integral da idade                                                                             
+def integrand(a,*args): #aqui vai a função a ser integrada
+         orad , omat, olam = params
+         ozero = orad + omat + olam
+         return (orad/a**2 + omat/a + olam*a**2 + (1-ozero))**(-1/2) 
+
+def age(a, params): # integração
+         #orad , omat, olam = params
+         result = quad(integrand, 0, a, args=(params),limit=300)[0]
+         return 1/Ho(0.68)/year * result 
+
+#        orad  omat   olam
+params = 9e-5, 0.305, 0.695
+
+z_dec = 1100
+a_dec = 1/(1100+1)
+
+a_range = np.logspace(1,1e-5,20)
+for a in a_range:
+         print("{:e}".format(a) , "{:e}".format(age(a,params)))
+
+#print("{:e}".format( age(1,params)))
+#print("{:e}".format( age(a_dec,params)))
+
+
+ #       x_mass = []
+ #       r_kpc = []
+ #       mass_tab = []
+ #       xx = xo
+ #       xf_i = pos * (xf - xo) / n_steps
+
+  #  while xx < xf_i * 0.95: # faça várias integrações varia o limite final
+  #      x_mass.append(xx)
+  #      mass_tab.append(mass(xx)[0])
+  #      xx = xx * 1.1
+
+   # r_mass = L * np.array(x_mass)
+   # mass_interp = interp1d(r_mass, mass_tab, kind='cubic') # interpolação dos resultados
+
+
+
+#plt.plot(x_mas, mass_interp(x_mass)) # plot do resultado                                                                             
+#plt.show() 

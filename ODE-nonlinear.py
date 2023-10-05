@@ -1,0 +1,82 @@
+from scipy.integrate import odeint
+import numpy as np
+import matplotlib.pylab as plt
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+#Função parâmetro de densidade para M
+def OmegaM(a,om,w):
+#    return a**3*w/(om*a**3*w + 1-om)
+    return om/(om +(1-om)*a**(-3*w))
+
+#Função parâmetro de densidade para E
+def OmegaE(a,om,w):
+    return 1 - OmegaM(a,om,w)
+
+#a_grid = np.geomspace(0.001,1,1000)                                                                                                                  
+#plt.plot(a_grid,OmegaM(a_grid,0.3,-1))                                                                                                               #plt.xscale("log")                                                                                                                                    #plt.show()                                                                                                                                           #exit() 
+
+#Função para deltam não linear
+def eqs_nl(y,a,om,w):
+    dm,dm_p = y
+    dyda    = [dm_p, (3/2)*OmegaM(a,om,w)*dm*(1+dm)/a**2 - dm_p/a*(2-1/2*(OmegaM(a,om,w) + OmegaE(a,om,w)*(1+3*w))) + (4/3)*(dm_p**2)/(1+dm)]
+    return dyda
+
+def eqs_lin(y,a,om,w):
+    dm,dm_p = y
+    dyda    = [dm_p, (3/2)*OmegaM(a,om,w)*dm/a**2 - dm_p/a*(2-1/2*(OmegaM(a,om,w) + OmegaE(a,om,w)*(1+3*w)))]
+    return dyda
+
+#Condições iniciais
+ai     = 0.001
+a_grid = np.geomspace(ai,1,2000)
+#dmi = 1.686e-3
+dmi  = 2.141e-3
+yN0  = [1.016*dmi,1.016*dmi/ai]
+yL0  = [dmi,dmi/ai]
+
+#solução
+def sol_nl(om,w):
+    sol    = odeint(eqs_nl,yN0,a_grid,args =(om,w), rtol=1e-9, atol=1e-9, printmessg=0)
+    dm     = interp1d(a_grid, sol[:,0], kind='cubic')
+    dm_p   = interp1d(a_grid, sol[:,1], kind='cubic')
+    return dm,dm_p
+
+def sol_lin(om,w):
+    sol    = odeint(eqs_lin,yL0,a_grid,args =(om,w), rtol=1e-9, atol=1e-9, printmessg=0)
+    dm     = interp1d(a_grid, sol[:,0], kind='cubic')
+    dm_p   = interp1d(a_grid, sol[:,1], kind='cubic')
+    return dm,dm_p
+
+
+dmN, dmN_p =  sol_nl(0.3,-1) #om =0.34 e w = -0.8 (dark  energy)
+dmL, dmL_p = sol_lin(0.3,-1)   #om = 0.3 e w = -1 (Lambda)
+
+
+print("dmL",dmL(1))
+
+plt.xscale("log")
+plt.plot(a_grid,dmN(a_grid), 'b', label ='dm com w = -1')
+plt.plot(a_grid,dmL(a_grid), 'r', label ='dm com w = -1')
+#plt.plot(a_grid,a_grid*dmi/ai, 'g', label ='dm com w = -1')
+
+plt.show()
+exit()
+
+#plots
+plt.subplot(2,2,1)
+
+plt.plot(a_grid, dm2(a_grid), 'b', label = 'dm com w=-0.8')
+plt.xlabel('a')
+plt.xscale("log")
+plt.yscale("log")
+plt.legend(loc='best')
+plt.grid()
+plt.subplot(2,2,2)
+plt.plot(a_grid, dm_p1(a_grid), 'g', label ='dm_p com w = -1')
+plt.plot(a_grid, dm_p2(a_grid), '--m', label ='dm_p com w = -0.8')
+plt.xlabel('a')
+plt.xscale("log")
+plt.yscale("log")
+plt.legend(loc='best')
+plt.grid()
+plt.show()
+plt.savefig('Evolução da pertubação na matéria',format = 'png')

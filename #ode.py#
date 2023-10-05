@@ -1,0 +1,80 @@
+import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from scipy.optimize import brentq
+from scipy.optimize import minimize_scalar
+from scipy.optimize import root
+from scipy.integrate import odeint
+from scipy.special import erf
+import sys
+import datetime
+import matplotlib.pylab as plt
+
+#OmegaM
+def OmegaM(a,om):
+    return om*a**(-3)/(om*a**(-3) + (1-om))
+
+def OmegaL(a,om):
+    return 1 - OmegaM(a,om)
+
+
+# Equação linear
+def eqs(y,a,om):
+    dm, dm_p = y
+    dyda = [dm_p, -(2 + OmegaL(a,om) - OmegaM(a,om)/2)*dm_p/a + 3/2*(OmegaM(a,om))*dm*(1/a**2)]#Caso com W=0 + W= -1
+    return dyda
+
+om = 0.3 #Omega da matéria - Benchmarck
+ai     = 0.001
+a_grid = np.linspace(ai,1,1000)
+y0     = [0.001,1]#Não tenho certeza.Mas, veja bem, se (dm)i=0.001 com ai=0.001,então -> (dot_dm)i=1
+
+sol    = odeint(eqs, y0, a_grid,args=(om,), rtol=1e-16, atol=1e-10, printmessg=0)
+sol_an = y0[0]/ai * a_grid
+
+dm   = interp1d(a_grid, sol[:,0], kind='cubic')
+dm_p = interp1d(a_grid, sol[:,1], kind='cubic')
+
+#plots de Omegas
+#plt.plot(a_grid, OmegaM(a_grid,0.3))
+#plt.plot(a_grid, OmegaL(a_grid,0.3))
+#plt.show()
+#exit()
+
+
+#Escrever a função f = d ln dm /d ln a  e comparar com OmegaM^0.55
+
+def f1(a):
+    return dm_p(a)*(a/dm(a))
+
+def f2(a,g):
+    return (OmegaM(a,om))**g
+g = 0.55 #Gama da relatividade geral
+
+def diff(a):
+    return 100*(1- f1(a)/f2(a,0.55))
+
+plt.plot(a_grid, diff(a_grid))#Plot de f sem gama
+
+#ratio = f1(a)/f2(a) Não consegui definir uma função que me dê a evolução da comparação entre f1 e f2. Deveria fazer igual a "sol_an"?
+#plt.plot(a_grid, dm_p(a_grid),'b',label='dm(a)')#Plot do delta
+
+#plt.plot(a_grid, f1(a_grid),'b',label='f1(a)')#Plot de f sem gama
+#plt.plot(a_grid, f2(a_grid,g),'g',label='f2(a)')#Plot de f com gama 
+
+#plt.plot(a_grid, dm(a_grid),'b',label='dm(a)')#Plot do delta
+
+#plt.plot(a_grid, OmegaM(a_grid,om),'r',label='dm(a)')
+
+#print(sol)
+#plt.plot(a_grid,sol[:,0],'b',label='dm(a)')#Plot do deltam
+#plt.plot(a_grid,sol[:,1],'b',label='dm(a)')#Plot do deltam
+#plt.plot(a_grid,sol_an,'black',label='dm_an(a)')#Plot do deltam
+
+#plt.plot(a_grid,100*(1-sol[:,0]/sol_an),'black',label='dm_an(a)')#Plot do erro
+#plt.plot(a_grid,sol[:,1],'r',label='dot_dm')#Plot do dot_dm
+
+plt.legend(loc='best')
+plt.xscale("log")
+#plt.yscale("log")
+#plt.grid()
+plt.show()

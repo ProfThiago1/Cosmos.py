@@ -1,0 +1,92 @@
+import numpy as np
+import matplotlib.pylab as plt
+from scipy.integrate import odeint
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+
+#OmegaM com We:
+def OmegaM(a,om,w):
+    return om*a**(3*w)/(om*a**(3*w) + (1-om))
+
+def OmegaE(a,om,w):
+    return 1 - OmegaM(a,om,w)
+
+#Equação da perturbação:
+def eqs(y,a,om,w):
+    dm,dm_p = y
+    dyda = [dm_p, -(2 - 1/2*(OmegaM(a,om,w) + OmegaE(a,om,w)*(1+3*w)))*dm_p/a + 3/2*OmegaM(a,om,w)*dm/(a**2)]
+    return dyda
+#Caso que We = WL = -1:
+ai     = 0.001
+a_grid = np.linspace(ai,1,1000)
+y0     = [0.001,1]
+
+def sol(om,w):
+    sol    = odeint(eqs, y0, a_grid, args=(om,w), rtol=1e-16, atol=1e-10, printmessg=0)
+    dm     = interp1d(a_grid, sol[:,0], kind='cubic')
+    dm_p   = interp1d(a_grid, sol[:,1], kind='cubic')
+    return dm, dm_p
+
+dm1, dm_p1 = sol(0.3,-1)
+dm2, dm_p2 = sol(0.34,-0.8)
+
+#Função f(a) da taxa de crescimento de dm:
+g = 0.55 #Gama da GR
+
+def f1(a,dm,dm_p):
+    return dm_p(a)*(a/dm(a)) #Função f(a) sem gama
+
+def f2(a,g):
+    return (OmegaM(a,om,w))**g #Função f(a) com gama
+
+#Erro de f:
+def diff(a):
+    return 100*(1 - f1(a)/f2(a,0.55))
+
+#plt.plot(a_grid, diff(a_grid), 'r', label = 'Erro de f')
+#plt.plot(a_grid, dm1(a_grid), 'r', label = 'w=-1.0')
+#plt.plot(a_grid, dm2(a_grid), 'b', label = 'w=-0.8')
+
+'plots das funções f(a)'
+#plt.title('fluctuations growth rate')
+#plt.plot(a_grid, f1(a_grid,dm1,dm_p1), 'r', label = 'w=-1.0')
+#plt.plot(a_grid, f1(a_grid,dm2,dm_p2), 'b', label = 'w=-0.8')
+#plt.xlabel('a')
+#plt.ylabel('f (a)')
+#plt.xscale("log")
+#plt.yscale("log")
+#plt.ylim(-0.1,0.7)
+#plt.legend(loc='best')
+#plt.grid()
+#plt.show()
+
+'Plots das funções OM e OE'
+plt.subplot(2,2,1)
+plt.title('OmegaM')
+plt.plot(a_grid,OmegaM(a_grid, 0.3, -1.0), 'g', label = 'w=-1')
+plt.xlabel('a')
+plt.ylabel('OM(a)')
+plt.legend(loc='best')
+plt.grid()
+plt.subplot(2,2,2)
+plt.title('OmegaE')
+plt.plot(a_grid, OmegaE(a_grid,0.3,-1.0),'g--', label = 'w=-1')
+plt.xlabel('a')
+plt.ylabel('OE(a)')
+plt.legend(loc ='best')
+plt.grid()
+plt.subplot(2,2,3)
+plt.plot(a_grid,OmegaM(a_grid, 0.34, -0.8), 'r', label = 'w=-0.8')
+plt.xlabel('a')
+plt.ylabel('OM(a)')
+plt.legend(loc ='best')
+plt.grid()
+plt.subplot(2,2,4)
+plt.plot(a_grid,OmegaE(a_grid, 0.34, -0.8), 'r--', label = 'w=-0.8')
+plt.xlabel('a')
+plt.ylabel('OE(a)')
+plt.legend(loc ='best')
+plt.grid()
+plt.show()
+plt.savefig('Plots OM,OE', format = 'png')
+
+
